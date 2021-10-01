@@ -1,8 +1,5 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Animations;
 
 public class PlayerController : MonoBehaviour
 {
@@ -11,11 +8,13 @@ public class PlayerController : MonoBehaviour
     public float smoothTime = 0.1f;
     public float walkSpeed = 5.0f;
     private float _angle, _speed, _currentVelocityAngular, _currentVelocityTranslational;
+    private Camera _mainCamera;
     
     // Start is called before the first frame update
     void Start()
     {
-        
+        var main = Camera.main;
+        _mainCamera = main ? main : throw new ArgumentNullException(nameof(_mainCamera));
     }
 
     // Update is called once per frame
@@ -23,7 +22,7 @@ public class PlayerController : MonoBehaviour
     {
         // Handle rotation toward camera
         
-        var mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        var mousePosition = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
         var directionToFace = mousePosition - transform.position;
         var targetAngle = Vector2.SignedAngle(Vector2.up, directionToFace);
         _angle = Mathf.SmoothDampAngle(_angle, targetAngle, ref _currentVelocityAngular, smoothTime, rotationSpeed);
@@ -47,5 +46,11 @@ public class PlayerController : MonoBehaviour
         {
             transform.Translate(Vector3.down * (_speed * Time.deltaTime), Space.World);
         }
+        
+        // Snap movement to edge of screen by converting transform.position to its in-camera equivalent and clamping it
+        var cameraPos = _mainCamera.WorldToViewportPoint(transform.position);
+        cameraPos.x = Mathf.Clamp01(cameraPos.x);
+        cameraPos.y = Mathf.Clamp01(cameraPos.y);
+        transform.position = _mainCamera.ViewportToWorldPoint(cameraPos);
     }
 }
